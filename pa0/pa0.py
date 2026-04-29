@@ -25,12 +25,16 @@ def PA0(path_to_user_reviews_csv):
         dtype={
             "reviewerID": "object",
             "overall": "float32",
-            "unixReviewTime": "int64",
+            "unixReviewTime": "float64",
             "helpful": "object",
         },
-        blocksize="128MB",
+        blocksize="256MB",
         assume_missing=False,
         on_bad_lines="skip"
+    )
+
+    reviews = reviews.dropna(
+        subset=["reviewerID", "overall", "unixReviewTime"]
     )
 
     # helpful looks like: "[3, 5]"
@@ -39,15 +43,15 @@ def PA0(path_to_user_reviews_csv):
         expand=True
     )
 
-    reviews["helpful_votes"] = helpful_parts[0].astype("int64")
-    reviews["total_votes"] = helpful_parts[1].astype("int64")
+    reviews["helpful_votes"] = helpful_parts[0].fillna(0).astype("uint32")
+    reviews["total_votes"] = helpful_parts[1].fillna(0).astype("uint32")
 
     users = reviews.groupby("reviewerID").agg({
         "overall": ["count", "mean"],
         "unixReviewTime": "min",
         "helpful_votes": "sum",
         "total_votes": "sum"
-    })
+    }, split_out=64)
 
     users.columns = [
         "number_products_rated",
@@ -60,9 +64,7 @@ def PA0(path_to_user_reviews_csv):
     users["reviewing_since"] = dd.to_datetime(
         users["first_review_time"],
         unit="s"
-    ).dt.year
-
-    users = users.drop(columns=["first_review_time"])
+    ).dt.year.astype("int16")
 
     users = users[
         [
