@@ -1,0 +1,11 @@
+
+# gym-environment
+.claudeignore
+.copilotignore
+.cursorignore
+.cursorrules
+.geminiignore
+.github
+AGENTS.md
+CLAUDE.md
+GEMINI.md
